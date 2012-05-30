@@ -5,6 +5,7 @@ Release:    1
 Group:      TO_BE/FILLED_IN
 License:    Samsung Proprietary License  
 Source0:    %{name}-%{version}.tar.gz
+Source1001: packaging/power-manager.manifest 
 Requires(post): /usr/bin/vconftool
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(glib-2.0)
@@ -35,6 +36,7 @@ Description: Samsung Linux platform Power manager
 cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix}
 
 %build
+cp %{SOURCE1001} .
 make %{?jobs:-j%jobs}
 
 %install
@@ -59,6 +61,7 @@ fi
 
 
 %files bin
+%manifest power-manager.manifest
 %defattr(-,root,root,-)
 /etc/rc.d/init.d/power_manager.sh
 /etc/rc.d/rc3.d/S35power-manager
