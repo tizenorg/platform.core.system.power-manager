@@ -31,6 +31,7 @@
 #include "pm_device_plugin.h"
 
 #define CMD_STANDBY	"standby"
+#define CMD_ON		"on"
 #define CMD_OFF		"off"
 
 static int pm_x_set_lcd_backlight(struct _PMSys *p, int onoff)
@@ -41,7 +42,7 @@ static int pm_x_set_lcd_backlight(struct _PMSys *p, int onoff)
 
 	LOGDBG("Backlight onoff=%d", onoff);
 	if (onoff == STATUS_ON)
-		snprintf(cmd_line, sizeof(cmd_line), "%s", CMD_STANDBY);
+		snprintf(cmd_line, sizeof(cmd_line), "%s", CMD_ON);
 	else
 		snprintf(cmd_line, sizeof(cmd_line), "%s", CMD_OFF);
 
