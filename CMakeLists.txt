@@ -1,0 +1,58 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+PROJECT(power_manager C)
+
+SET(SRCS
+	util.c
+	main.c 
+	pm_llinterface.c 
+	pm_conf.c 
+	pm_setting.c 
+	pm_poll.c 
+	pm_core.c 
+	pm_lsensor.c
+	pm_device_plugin.c
+	pm_key_filter.c )
+
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "")
+	SET(CMAKE_BUILD_TYPE "Release")
+ENDIF("${CMAKE_BUILD_TYPE}" STREQUAL "")
+MESSAGE("Build type: ${CMAKE_BUILD_TYPE}")
+
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+
+SET(CMAKE_C_FLAGS_DEBUG "-O0 -g")
+SET(CMAKE_C_FLAGS_RELEASE "-O2")
+
+INCLUDE(FindPkgConfig)
+pkg_check_modules(pkgs REQUIRED vconf glib-2.0 sysman aul dlog heynoti devman_plugin sensor)
+
+FOREACH(flag ${pkgs_CFLAGS})
+	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
+ENDFOREACH(flag)
+
+SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} -g -fno-omit-frame-pointer -finstrument-functions")
+
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS}")
+
+ADD_DEFINITIONS("-DENABLE_KEY_FILTER")
+ADD_DEFINITIONS("-DENABLE_X_LCD_ONOFF")
+ADD_DEFINITIONS("-DENABLE_DLOG_OUT")
+
+ADD_EXECUTABLE(${PROJECT_NAME} ${SRCS})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS} -ldl)
+
+SET(PREFIX ${CMAKE_INSTALL_PREFIX})
+SET(EXEC ${PROJECT_NAME})
+CONFIGURE_FILE(pmctrl.in pmctrl @ONLY)
+
+SET(UDEV_RULES_PATH share/power-manager/udev-rules)
+SET(UDEV_RULES udev-rules/91-power-manager.rules)
+
+CONFIGURE_FILE(${UDEV_RULES}.in ${UDEV_RULES} @ONLY)
+
+INSTALL(TARGETS ${PROJECT_NAME} DESTINATION bin)
+INSTALL(PROGRAMS ${CMAKE_BINARY_DIR}/pmctrl DESTINATION bin)
+INSTALL(FILES ${UDEV_RULES} DESTINATION ${UDEV_RULES_PATH})
+INSTALL(PROGRAMS ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}.sh DESTINATION /etc/rc.d/init.d)
+
+ADD_SUBDIRECTORY(pm_event)
