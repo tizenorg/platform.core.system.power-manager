@@ -1,23 +1,17 @@
-/* 
- * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd All Rights Reserved
+/*
+ * Copyright 2012  Samsung Electronics Co., Ltd
  *
- * This file is part of power-manager
- * Written by DongGi Jang <dg0402.jang@samsung.com>
+ * Licensed under the Flora License, Version 1.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * PROPRIETARY/CONFIDENTIAL
+ * 	http://www.tizenopensource.org/license
  *
- * This software is the confidential and proprietary information of
- * SAMSUNG ELECTRONICS ("Confidential Information"). You shall not
- * disclose such Confidential Information and shall use it only in
- * accordance with the terms of the license agreement you entered
- * into with SAMSUNG ELECTRONICS.
- *
- * SAMSUNG make no representations or warranties about the suitability
- * of the software, either express or implied, including but not limited
- * to the implied warranties of merchantability, fitness for a particular
- * purpose, or non-infringement. SAMSUNG shall not be liable for any
- * damages suffered by licensee as a result of using, modifying or
- * distributing this software or its derivatives.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
 */
 
 
@@ -846,7 +840,6 @@ static int update_setting(int key_idx, int val)
 			break;
 		case SETTING_LOW_BATT:
 			if (val < VCONFKEY_SYSMAN_BAT_WARNING_LOW) {
-				//if (!(status_flag & CHRGR_FLAG))
 				power_saving_func(true);
 				status_flag |= LOWBT_FLAG;
 			} else {
@@ -855,24 +848,6 @@ static int update_setting(int key_idx, int val)
 				status_flag &= ~LOWBT_FLAG;
 			}
 			break;
-			/*	case SETTING_CHARGING:
-				if (val) {
-				if (status_flag & LOWBT_FLAG) {
-				power_saving_func(false);
-				status_flag &= ~LOWBT_FLAG;
-				}
-				status_flag |= CHRGR_FLAG;
-				} else {
-				int bat_state = VCONFKEY_SYSMAN_BAT_NORMAL;
-				vconf_get_int(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW, &bat_state);
-				if(bat_state < VCONFKEY_SYSMAN_BAT_NORMAL) {
-				power_saving_func(true);
-				status_flag |= LOWBT_FLAG;
-				}
-				status_flag &= ~CHRGR_FLAG;
-				}
-				break;
-			 */
 		case SETTING_BRT_LEVEL:		
 			if (status_flag & PWRSV_FLAG)	
 				break;		
@@ -930,7 +905,6 @@ static void check_seed_status(void)
 		LOGDBG("Set brightness from Setting App. %d", tmp);
 		set_default_brt(tmp);
 	} else {
-		//if (!(status_flag & CHRGR_FLAG)) {
 		power_saving_func(true);
 		status_flag |= LOWBT_FLAG;
 	}
@@ -944,12 +918,6 @@ static void check_seed_status(void)
 			add_node(S_SLEEP, tmp, -1);
 		}
 	}
-
-	/* Charging check 
-	   if ((get_charging_status(&tmp) == 0) && (tmp > 0)) {
-	   status_flag |= CHRGR_FLAG;
-	   }
-	 */
 
 	/* lock screen check */
 	ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &lock_state);

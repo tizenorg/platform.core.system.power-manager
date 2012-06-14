@@ -9,12 +9,12 @@ Standards-Version: 3.7.2
 Package: power-manager-bin
 Architecture: any 
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Samsung Linux platform Power manager
- Samsung Linux platform Power manager
+Description: Power manager
+ Power manager
  
 Package: power-manager-bin-dbg
 Section: debug
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, power-manager-bin (= ${Source-Version})
-Description: Samsung Linux platform Power manager
- Samsung Linux platform Power manager (unstripped)
+Description: Power manager
+ Power manager (unstripped)
