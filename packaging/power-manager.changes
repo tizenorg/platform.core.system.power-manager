@@ -1,0 +1,3 @@
+Fri Jun 29 2012 Chengwei Yang <chengwei.yang@intel.com> - 1.3.21
+- Add change log
+- fix file permission of pm_event
