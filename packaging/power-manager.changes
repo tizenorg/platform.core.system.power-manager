@@ -1,3 +1,7 @@
+Wed Jul 4 2012 Austin Zhang <austin.zhang@intel.com> - 1.3.21
+- Add change log to trigger submit
+- RESEND before patch due to it was overwrote.
+
 Fri Jun 29 2012 Chengwei Yang <chengwei.yang@intel.com> - 1.3.21
 - Add change log
 - fix file permission of pm_event
