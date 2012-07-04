@@ -1,7 +1,23 @@
-Wed Jul 4 2012 Austin Zhang <austin.zhang@intel.com> - 1.3.21
-- Add change log to trigger submit
-- RESEND before patch due to it was overwrote.
+* Wed Jul 04 2012 Anas Nashif <anas.nashif@intel.com> d891f8d
+- Do not use bin sub-package, cleanup spec
+[ Austin Zhang ]
+- [RESEND]Because the before commit was overwrote by commit: 372cc309664cdc4afc687b7bf3319d0e841535ab
+- update change to trigger submit after approval
 
-Fri Jun 29 2012 Chengwei Yang <chengwei.yang@intel.com> - 1.3.21
-- Add change log
-- fix file permission of pm_event
+* Fri Jun 29 2012 Chengwei Yang <chengwei.yang@intel.com> 88e5281
+- Add change log and fix file permission
+
+* Thu Jun 14 2012 Kim Kibum <kb0929.kim@samsung.com> 372cc30
+- apply FSL license
+
+* Fri Jun 01 2012 Austin, Zhang <austin.zhang@intel.com> 21d25aa
+- We should use 'on' to light on the LCD screen, 'standby' is not always same with 'on', that depends on the driver implementation.
+
+* Wed May 30 2012 Ryan Ware <ryan.r.ware@intel.com> fedb8b4
+- Add default Smack manifest for power-manager.spec
+
+* Fri Apr 27 2012 Kim Kibum <kb0929.kim@samsung.com> 0ac0935
+- Tizen souce update
+[ eunmee.moon ]
+- Initial empty repository
+
