@@ -24,8 +24,15 @@
 
 #include "pm_device_plugin.h"
 
+/* Need more information but right now xset using "on" doesn't work
+ * for arm and so we define CMD_ON as CMD_STANDBY when not on x86.
+ */
 #define CMD_STANDBY	"standby"
+#ifndef X86
+#define CMD_ON		CMD_STANDBY
+#else
 #define CMD_ON		"on"
+#endif
 #define CMD_OFF		"off"
 
 static int pm_x_set_lcd_backlight(struct _PMSys *p, int onoff)
