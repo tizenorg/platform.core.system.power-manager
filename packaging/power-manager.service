@@ -1,0 +1,12 @@
+[Unit]
+Description=Start the power manager service
+After=xorg.target
+Requires=xorg.target
+Before=e17.service
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/pmctrl start
+
+[Install]
+WantedBy=core-efl.target

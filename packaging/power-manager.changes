@@ -1,3 +1,6 @@
+* Tue Jul 10 2012 Patrick McCarty <patrick.mccarty@linux.intel.com> 14b456f
+- Add/install a systemd user service file
+
 * Tue Jul 10 2012 william.douglas@intel.com <william.douglas@intel.com> build/2012-07-04.095101@b69ceab
 [ William Douglas ]
 - Use "standby" for arm when turning the lcd on with xset.

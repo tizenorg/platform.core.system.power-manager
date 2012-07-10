@@ -5,6 +5,7 @@ License:        Flora License 1.0
 Summary:        Tizen Power manager
 Group:          System/Power Manager
 Source0:        %{name}-%{version}.tar.gz
+Source1:        power-manager.service
 Source1001:     power-manager.manifest
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(aul)
@@ -33,6 +34,10 @@ make %{?_smp_mflags}
 %install
 %make_install
 
+mkdir -p %{buildroot}%{_libdir}/systemd/user/core-efl.target.wants
+install -m 0644 %{SOURCE1} %{buildroot}%{_libdir}/systemd/user/power-manager.service
+ln -s ../power-manager.service %{buildroot}%{_libdir}/systemd/user/core-efl.target.wants/power-manager.service
+
 mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc3.d/
 mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc5.d/
 
@@ -56,5 +61,7 @@ fi
 %{_bindir}/pm_event
 %{_bindir}/pmctrl
 %{_bindir}/power_manager
+%{_libdir}/systemd/user/power-manager.service
+%{_libdir}/systemd/user/core-efl.target.wants/power-manager.service
 %{_datadir}/power-manager/udev-rules/91-power-manager.rules
 
