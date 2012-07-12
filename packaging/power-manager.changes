@@ -1,3 +1,6 @@
+* Thu Jul 12 2012 Patrick McCarty <patrick.mccarty@linux.intel.com> 500b75e
+- Make the power-manager state vconf key writeable by app user
+
 * Tue Jul 10 2012 Patrick McCarty <patrick.mccarty@linux.intel.com> 14b456f
 - Add/install a systemd user service file
 

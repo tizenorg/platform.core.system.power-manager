@@ -45,7 +45,7 @@ ln -s %{_sysconfdir}/init.d/power_manager.sh %{buildroot}%{_sysconfdir}/rc.d/rc3
 ln -s %{_sysconfdir}/init.d/power_manager.sh %{buildroot}%{_sysconfdir}/rc.d/rc5.d/S00power-manager
 
 %post
-vconftool set -t int memory/pwrmgr/state 0 -i
+vconftool set -t int memory/pwrmgr/state 0 -i -g 5000
 heynotitool set system_wakeup
 
 mkdir -p /etc/udev/rules.d
