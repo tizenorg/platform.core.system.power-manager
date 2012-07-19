@@ -569,6 +569,11 @@ static void sig_usr(int signo)
 	status_flag |= VCALL_FLAG;
 }
 
+static void sig_break_block(int signo)
+{
+	LOGDBG("We got signal to break that pending checking in kernel\n");
+}
+
 /* 
  * default transition function
  *   1. call check 
@@ -615,6 +620,7 @@ static int default_action(int timeout)
 	char *pkgname = NULL;
 	int i = 0;
 	int lock_state = 0;
+	struct itimerval val;
 
 	if (cur_state != old_state && cur_state != S_SLEEP)
 		set_setting_pmstate(cur_state);
@@ -653,6 +659,21 @@ static int default_action(int timeout)
 			break;
 
 		case S_SLEEP:
+			/*
+			 * We can not always be blocked here because of that
+			 * in-progress checking in kernel for wakeup count,
+			 * if we cannot get the result within some time, then
+			 * just give it up and then retry it in the next time,
+			 * this method would not break that original expected
+			 * 'aggresive suspend' idea, but at the same time make
+			 * the system is 'always' responsible to some keypress
+			 * actions like power button press.
+			 */
+			val.it_value.tv_sec = TOLERANCE_SLOT;
+			val.it_value.tv_usec = 0;
+			val.it_interval.tv_sec = val.it_interval.tv_usec = 0;
+			setitimer(ITIMER_REAL, &val, NULL);
+
 			/* sleep state : set system mode to SUSPEND */
 			if (0 > plugin_intf->OEM_sys_get_power_wakeup_count(&wakeup_count)) 
 				LOGERR("wakeup count read error");
@@ -1094,6 +1115,7 @@ void start_main(unsigned int flags)
 	signal(SIGHUP, sig_hup);
 	signal(SIGCHLD, SIG_IGN);
 	signal(SIGUSR1, sig_usr);
+	signal(SIGALRM, sig_break_block);
 
 	mainloop = g_main_loop_new(NULL, FALSE);
 	power_saving_func = default_saving_mode;

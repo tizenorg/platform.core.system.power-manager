@@ -42,6 +42,8 @@
 #define CHRGR_FLAG		0x00000200
 #define PWRSV_FLAG		0x00000400
 
+#define TOLERANCE_SLOT		2
+
 unsigned int status_flag;
 
 /*

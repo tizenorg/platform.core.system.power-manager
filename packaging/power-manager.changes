@@ -1,3 +1,9 @@
+* Fri Jul 13 2012 Austin Zhang <austin.zhang@intel.com>
+- When power-manager was blocked due to check in-progress wakeup event
+  in kernel, it would not be able to handle input event like power button,
+  so that the power button can not light on the screen at this time.
+  Fix #TZSP-2578
+
 * Thu Jul 12 2012 Patrick McCarty <patrick.mccarty@linux.intel.com> 500b75e
 - Make the power-manager state vconf key writeable by app user
 
