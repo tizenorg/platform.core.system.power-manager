@@ -1,7 +1,7 @@
 Name:           power-manager
 Version:        1.3.21
 Release:        1
-License:        Flora License 1.0
+License:    Flora Software License 
 Summary:        Tizen Power manager
 Group:          System/Power Manager
 Source0:        %{name}-%{version}.tar.gz
