@@ -1,3 +1,9 @@
+* Fri Jul 27 2012 Yong Wang <yong.y.wang@intel.com> 20120724.1.flora@fe8ace2
+- Define X86 when building for IA. In commit 67b79a X86 macro is defined
+  to distinguish IA and ARM at compile time so that different options could
+  be passed to xset to turn on display. However, X86 macro is not defined
+  anywhere. This patch defines X86 macro when building for IA.
+
 * Fri Jul 13 2012 Austin Zhang <austin.zhang@intel.com>
 - When power-manager was blocked due to check in-progress wakeup event
   in kernel, it would not be able to handle input event like power button,

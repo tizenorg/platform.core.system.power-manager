@@ -28,6 +28,9 @@ Tizen Power manager
 
 %build
 cp %{SOURCE1001} .
+%ifarch %ix86
+CFLAGS+=" -DX86"
+%endif
 cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix}
 make %{?_smp_mflags}
 
