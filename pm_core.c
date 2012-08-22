@@ -104,12 +104,19 @@ static int trans_table[S_END][EVENT_END] = {
 #define SHIFT_CHANGE_STATE	7
 #define CHANGE_STATE_BIT	0xF00	/* 1111 0000 0000 */
 #define LOCK_SCREEN_TIMEOUT	5
+#define SHIFT_HOLD_KEY_BLOCK	16
+
+#define DEFAULT_NORMAL_TIMEOUT	30
+#define DEFAULT_DIM_TIMEOUT		5
+#define DEFAULT_OFF_TIMEOUT		5
+#define GET_HOLDKEY_BLOCK_STATE(x) ((x >> SHIFT_HOLD_KEY_BLOCK) & 0x1)
 
 static int received_sleep_cmd = 0;
 
 typedef struct _node {
 	pid_t pid;
 	int timeout_id;
+	gboolean holdkey_block;
 	struct _node *next;
 } Node;
 
@@ -141,7 +148,8 @@ static Node *find_node(enum state_t s_index, pid_t pid)
 	return t;
 }
 
-static Node *add_node(enum state_t s_index, pid_t pid, int timeout_id)
+static Node *add_node(enum state_t s_index, pid_t pid, int timeout_id,
+		gboolean holdkey_block)
 {
 	Node *n;
 
@@ -153,6 +161,7 @@ static Node *add_node(enum state_t s_index, pid_t pid, int timeout_id)
 
 	n->pid = pid;
 	n->timeout_id = timeout_id;
+	n->holdkey_block = holdkey_block;
 	n->next = cond_head[s_index];
 	cond_head[s_index] = n;
 
@@ -189,7 +198,7 @@ static int del_node(enum state_t s_index, Node *n)
 static gboolean del_dim_cond(gpointer data)
 {
 	Node *tmp = NULL;
-	LOGDBG("delete prohibit dim condition by timeout\n");
+	LOGINFO("delete prohibit dim condition by timeout\n");
 
 	tmp = find_node(S_LCDDIM, (pid_t) data);
 	del_node(S_LCDDIM, tmp);
@@ -203,7 +212,7 @@ static gboolean del_dim_cond(gpointer data)
 static gboolean del_off_cond(gpointer data)
 {
 	Node *tmp = NULL;
-	LOGDBG("delete prohibit off condition by timeout\n");
+	LOGINFO("delete prohibit off condition by timeout\n");
 
 	tmp = find_node(S_LCDOFF, (pid_t) data);
 	del_node(S_LCDOFF, tmp);
@@ -217,7 +226,7 @@ static gboolean del_off_cond(gpointer data)
 static gboolean del_sleep_cond(gpointer data)
 {
 	Node *tmp = NULL;
-	LOGDBG("delete prohibit sleep condition by timeout\n");
+	LOGINFO("delete prohibit sleep condition by timeout\n");
 
 	tmp = find_node(S_SLEEP, (pid_t) data);
 	del_node(S_SLEEP, tmp);
@@ -236,6 +245,7 @@ static int proc_condition(PMMsg *data)
 	unsigned int val = data->cond;
 	pid_t pid = data->pid;
 	int cond_timeout_id = -1;
+	gboolean holdkey_block = 0;
 
 	if (val == 0)
 		return 0;
@@ -261,12 +271,14 @@ static int proc_condition(PMMsg *data)
 						(GSourceFunc) del_dim_cond,
 						(gpointer) pid, NULL);
 		}
+		holdkey_block = GET_HOLDKEY_BLOCK_STATE(val);
 		tmp = find_node(S_LCDDIM, pid);
 		if (tmp == NULL)
-			tmp = add_node(S_LCDDIM, pid, cond_timeout_id);
+			tmp = add_node(S_LCDDIM, pid, cond_timeout_id, holdkey_block);
 		else if (tmp->timeout_id > 0) {
 			g_source_remove(tmp->timeout_id);
 			tmp->timeout_id = cond_timeout_id;
+			tmp->holdkey_block = holdkey_block;
 		}
 		/* for debug */
 		LOGINFO("[%s] locked by pid %d - process %s\n", "S_NORMAL", pid,
@@ -280,12 +292,14 @@ static int proc_condition(PMMsg *data)
 						(GSourceFunc) del_off_cond,
 						(gpointer) pid, NULL);
 		}
+		holdkey_block = GET_HOLDKEY_BLOCK_STATE(val);
 		tmp = find_node(S_LCDOFF, pid);
 		if (tmp == NULL)
-			tmp = add_node(S_LCDOFF, pid, cond_timeout_id);
+			tmp = add_node(S_LCDOFF, pid, cond_timeout_id, holdkey_block);
 		else if (tmp->timeout_id > 0) {
 			g_source_remove(tmp->timeout_id);
 			tmp->timeout_id = cond_timeout_id;
+			tmp->holdkey_block = holdkey_block;
 		}
 		/* for debug */
 		LOGINFO("[%s] locked by pid %d - process %s\n", "S_LCDDIM", pid,
@@ -301,10 +315,11 @@ static int proc_condition(PMMsg *data)
 		}
 		tmp = find_node(S_SLEEP, pid);
 		if (tmp == NULL)
-			tmp = add_node(S_SLEEP, pid, cond_timeout_id);
+			tmp = add_node(S_SLEEP, pid, cond_timeout_id, 0);
 		else if (tmp->timeout_id > 0) {
 			g_source_remove(tmp->timeout_id);
 			tmp->timeout_id = cond_timeout_id;
+			tmp->holdkey_block = 0;
 		}
 		sysman_inform_active(pid);
 		/* for debug */
@@ -365,7 +380,7 @@ static int proc_change_state(unsigned int cond)
 			break;
 		}
 	}
-	LOGDBG("Change State to %s", state_string[next_state]);
+	LOGINFO("Change State to %s", state_string[next_state]);
 
 	switch (next_state) {
 		case S_NORMAL:
@@ -432,10 +447,50 @@ int check_processes(enum state_t prohibit_state)
 	return ret;
 }
 
+int check_holdkey_block(enum state_t state)
+{
+	Node *t = cond_head[state];
+	int ret = 0;
+
+	LOGINFO("check holdkey block : state of %s", state_string[state]);
+
+	while(t != NULL) {
+		if(t->holdkey_block == true) {
+			ret = 1;
+			LOGINFO("Hold key blocked by pid(%d)!", t->pid);
+			break;
+		}
+		t = t->next;
+	}
+
+	return ret;
+}
+
+int delete_condition(enum state_t state)
+{
+	Node *t = cond_head[state];
+	int ret = 0;
+	Node *tmp = NULL;
+
+	LOGINFO("delete condition : state of %s", state_string[state]);
+
+	while(t != NULL) {
+		if(t->timeout_id > 0) {
+			g_source_remove(t->timeout_id);
+		}
+		tmp = t;
+		t = t->next;
+		LOGINFO("delete node of pid(%d)", tmp->pid);
+		del_node(state, tmp);
+	}
+
+	return 0;
+}
+
 /* SIGINT, SIGTERM, SIGQUIT signal handler */
 static void sig_quit(int signo)
 {
-	LOGDBG("received %d signal : stops a main loop", signo);
+	LOGINFO("received %d signal : stops a main loop", signo);
 	if (mainloop)
 		g_main_loop_quit(mainloop);
 }
@@ -532,7 +587,7 @@ static void sig_hup(int signo)
 /* timeout handler  */
 gboolean timeout_handler(gpointer data)
 {
-	LOGDBG("Time out state %s\n", state_string[cur_state]);
+	LOGINFO("Time out state %s\n", state_string[cur_state]);
 
 	if (timeout_src_id != 0) {
 		g_source_remove(timeout_src_id);
@@ -580,13 +635,18 @@ static int default_trans(int evt)
 	struct state *st = &states[cur_state];
 	int next_state;
 
+	if(cur_state == S_NORMAL && st->timeout == 0) {
+		LOGINFO("LCD always on enabled!");
+		return 0;
+	}
+
 	next_state = (enum state_t)trans_table[cur_state][evt];
 
 	/* check conditions */
 	while (st->check && !st->check(next_state)) {
 		/* There is a condition. */
-		LOGDBG("%s -> %s : check fail", state_string[cur_state],
-				state_string[next_state]);
+		LOGINFO("%s -> %s : check fail", state_string[cur_state],
+		       state_string[next_state]);
 		if (!check_processes(next_state)) {
 			/* this is valid condition - the application that sent the condition is running now. */
 			return -1;
@@ -614,7 +674,7 @@ static int default_action(int timeout)
 	char buf[NAME_MAX];
 	char *pkgname = NULL;
 	int i = 0;
-	int lock_state = 0;
+	int lock_state = -1;
 
 	if (cur_state != old_state && cur_state != S_SLEEP)
 		set_setting_pmstate(cur_state);
@@ -672,7 +732,7 @@ static int default_action(int timeout)
 
 	/* set timer with current state timeout */
 	reset_timeout(timeout);
-	LOGDBG("timout set: %s state %d sec", state_string[cur_state], timeout);
+	LOGINFO("timout set: %s state %d sec", state_string[cur_state], timeout);
 
 	return 0;
 
@@ -704,8 +764,15 @@ go_lcd_off:
 static int default_check(int next)
 {
 	int trans_cond = trans_condition & MASK_BIT;
+	int lock_state = -1;
 
-	LOGDBG("trans_cond : %x", trans_cond);
+	LOGINFO("trans_cond : %x", trans_cond);
+
+	vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &lock_state);
+	if(lock_state==VCONFKEY_IDLE_LOCK && next != S_SLEEP) {
+		LOGINFO("default_check : LOCK STATE, it's transitable");
+		return 1;
+	}
 
 	switch (next) {
 		case S_LCDDIM:
@@ -756,12 +823,25 @@ static int get_settings()
 				ret = -1;
 				break;
 		}
-		if (ret == 0)
+		if (ret == 0 || val < 0) {
 			states[i].timeout = val;
-		else
-			states[i].timeout = 0;
-		LOGDBG("%s state : %d timeout", state_string[i],
-				states[i].timeout);
+		} else {
+			switch (states[i].state) {
+				case S_NORMAL:
+					states[i].timeout = DEFAULT_NORMAL_TIMEOUT;
+					break;
+				case S_LCDDIM:
+					states[i].timeout = DEFAULT_DIM_TIMEOUT;
+					break;
+				case S_LCDOFF:
+					states[i].timeout = DEFAULT_OFF_TIMEOUT;
+					break;
+				default:
+					states[i].timeout = 0;
+					break;
+			}
+		}
+		LOGINFO("%s state : %d timeout", state_string[i], states[i].timeout);
 	}
 
 	return 0;
@@ -769,23 +849,10 @@ static int get_settings()
 
 static void default_saving_mode(int onoff)
 {
-	int ret = -1, val = 5;
-	char tmp[NAME_MAX];
-
 	if (onoff) {
 		status_flag |= PWRSV_FLAG;
-		get_env(EN_SYS_DIMBRT, tmp, sizeof(tmp));
-		set_default_brt(atoi(tmp));	/* Minimum brightness */
 	} else {
 		status_flag &= ~PWRSV_FLAG;
-		ret = get_setting_brightness(&val);
-		if (ret > -1) {
-			LOGDBG("Set brightness from Setting App. %d", ret);
-			set_default_brt(val);
-		} else {
-			LOGERR("Failed to get the brightness value");
-			set_default_brt(5);
-		}
 	}
 	if (cur_state == S_NORMAL)
 		backlight_restore();
@@ -813,7 +880,7 @@ static int poll_callback(int condition, PMMsg *data)
 
 		if (data->cond & CHANGE_STATE_BIT) {
 
-			LOGDBG("Change state by pid(%d) request.", data->pid);
+			LOGINFO("Change state by pid(%d) request.", data->pid);
 			proc_change_state(data->cond);
 		}
 	}
@@ -827,35 +894,65 @@ static int update_setting(int key_idx, int val)
 	int ret = -1;
 	int dim_timeout = -1;
 	int run_timeout = -1;
+	int power_saving_stat = -1;
+	int power_saving_display_stat = -1;
 
 	switch (key_idx) {
-		case SETTING_TO_NORMAL:
-			ret = get_dim_timeout(&dim_timeout);
-			if(ret < 0) {
-				LOGERR("Can not get dim timeout. set default 5 seconds");
-				dim_timeout = 5;
-			}
+	case SETTING_TO_NORMAL:
+		ret = get_dim_timeout(&dim_timeout);
+		if(ret < 0 || dim_timeout < 0) {
+			LOGERR("Can not get dim timeout. set default 5 seconds");
+			dim_timeout = 5;
+		}
+		if(val < 0) {
+			LOGERR("LCD timeout is wrong, set default 15 seconds");
+			val = 15;
+		}
+		if(val == 0) {
+			states[S_NORMAL].timeout = 0;
+		} else if(val > dim_timeout) {
 			states[S_NORMAL].timeout = val - dim_timeout;
-			states[cur_state].trans(EVENT_INPUT);
-			break;
-		case SETTING_LOW_BATT:
-			if (val < VCONFKEY_SYSMAN_BAT_WARNING_LOW) {
+		} else {
+			states[S_NORMAL].timeout = 1;
+		}
+		states[cur_state].trans(EVENT_INPUT);
+		break;
+	case SETTING_LOW_BATT:
+		if (val < VCONFKEY_SYSMAN_BAT_WARNING_LOW) {
+			if (!(status_flag & CHRGR_FLAG))
 				power_saving_func(true);
-				status_flag |= LOWBT_FLAG;
-			} else {
-				if (status_flag & PWRSV_FLAG)
-					power_saving_func(false);
+			status_flag |= LOWBT_FLAG;
+		} else {
+			if (status_flag & PWRSV_FLAG)
+				power_saving_func(false);
+			status_flag &= ~LOWBT_FLAG;
+		}
+		break;
+	case SETTING_CHARGING:
+		if (val) {
+			if (status_flag & LOWBT_FLAG) {
+				power_saving_func(false);
 				status_flag &= ~LOWBT_FLAG;
 			}
-			break;
-		case SETTING_BRT_LEVEL:		
-			if (status_flag & PWRSV_FLAG)	
-				break;		
-			set_default_brt(val);
-			snprintf(buf, sizeof(buf), "%s %d", SET_BRIGHTNESS_IN_BOOTLOADER, val);
-			LOGINFO("Brightness set in bl : %d",val);
-			system(buf);
-			break;
+			status_flag |= CHRGR_FLAG;
+		} else {
+			int bat_state = VCONFKEY_SYSMAN_BAT_NORMAL;
+			vconf_get_int(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW, &bat_state);
+			if(bat_state < VCONFKEY_SYSMAN_BAT_NORMAL) {
+				power_saving_func(true);
+				status_flag |= LOWBT_FLAG;
+			}
+			status_flag &= ~CHRGR_FLAG;
+		}
+		break;
+	case SETTING_BRT_LEVEL:
+		if (status_flag & PWRSV_FLAG)
+			   break;
+		set_default_brt(val);
+		snprintf(buf, sizeof(buf), "%s %d", SET_BRIGHTNESS_IN_BOOTLOADER, val);
+		LOGINFO("Brightness set in bl : %d",val);
+		system(buf);
+		break;
 	case SETTING_LOCK_SCREEN:
 		if (val == VCONFKEY_IDLE_LOCK) {
 			states[S_NORMAL].timeout = LOCK_SCREEN_TIMEOUT;
@@ -867,13 +964,33 @@ static int update_setting(int key_idx, int val)
 				run_timeout = 10;
 			}
 			states[S_NORMAL].timeout = run_timeout;
+			LOGINFO("LCD NORMAL timeout is set by %d seconds because phone is unlocked", run_timeout);
 		}
 		if (cur_state == S_NORMAL) {
 			states[cur_state].trans(EVENT_INPUT);
 		}
-			break;
-		default:
-			return -1;
+		break;
+	case SETTING_POWER_SAVING:
+		if (val == 1)
+			vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_CUSTMODE_DISPLAY, &power_saving_display_stat);
+		if (power_saving_display_stat != 1)
+			power_saving_display_stat = 0;
+		plugin_intf->OEM_sys_set_display_frame_rate(power_saving_display_stat);
+		backlight_restore();
+		break;
+	case SETTING_POWER_SAVING_DISPLAY:
+		vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_SYSMODE_STATUS, &power_saving_stat);
+		if (power_saving_stat == 1) {
+			if (val == 1)
+				power_saving_display_stat = 1;
+			else
+				power_saving_display_stat = 0;
+			plugin_intf->OEM_sys_set_display_frame_rate(power_saving_display_stat);
+			backlight_restore();
+		}
+		break;
+	default:
+		return -1;
 	}
 	return 0;
 }
@@ -882,14 +999,19 @@ static void check_seed_status(void)
 {
 	int ret = -1;
 	int tmp = 0;
-	int bat_state = 4;
+	int bat_state = VCONFKEY_SYSMAN_BAT_NORMAL;
 	int max_brt = 0;
 	int brt = 0;
 	int lock_state = -1;
 
+	/* Charging check */
+	if ((get_charging_status(&tmp) == 0) && (tmp > 0)) {
+		status_flag |= CHRGR_FLAG;
+	}
+
 	ret = get_setting_brightness(&tmp);
 	if (ret != 0 || tmp < 0) {
-		LOGDBG("fail to read vconf value for brightness");
+		LOGINFO("fail to read vconf value for brightness");
 
 		if (0 > plugin_intf->OEM_sys_get_backlight_max_brightness(DEFAULT_DISPLAY, &max_brt))
 			brt = 7;
@@ -897,16 +1019,18 @@ static void check_seed_status(void)
 			brt = max_brt * 0.4;
 		if(tmp < 0)
 			vconf_set_int(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, brt);
-		tmp=brt;
+		tmp = brt;
 	}
 
 	vconf_get_int(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW, &bat_state);
 	if(bat_state >= VCONFKEY_SYSMAN_BAT_WARNING_LOW || bat_state == -1 ) {
-		LOGDBG("Set brightness from Setting App. %d", tmp);
+		LOGINFO("Set brightness from Setting App. %d", tmp);
 		set_default_brt(tmp);
 	} else {
-		power_saving_func(true);
-		status_flag |= LOWBT_FLAG;
+		if (!(status_flag & CHRGR_FLAG)) {
+			power_saving_func(true);
+			status_flag |= LOWBT_FLAG;
+		}
 	}
 	backlight_restore();
 
@@ -915,7 +1039,7 @@ static void check_seed_status(void)
 	if ((get_usb_status(&tmp) == 0) && (tmp > 0)) {
 		tmp = readpid(USB_CON_PIDFILE);
 		if (tmp != -1) {
-			add_node(S_SLEEP, tmp, -1);
+			add_node(S_SLEEP, tmp, -1, 0);
 		}
 	}
 
@@ -943,6 +1067,24 @@ static char *errMSG[INIT_END] = {
 	[INIT_POLL] = "input devices poll init error",
 	[INIT_FIFO] = "FIFO poll init error",
 };
+
+/* logging indev_list for debug */
+void printglist()
+{
+        int i;
+        guint total=0;
+        indev *tmp;
+
+        total=g_list_length(indev_list);
+        LOGINFO("***** total list : %d *****",total);
+        for(i=0;i<total;i++) {
+                tmp=(indev*)(g_list_nth(indev_list, i)->data);
+                LOGINFO("* %d | path:%s, gsource:%d, gfd:%d", i, tmp->dev_path, tmp->dev_src, tmp->dev_fd);
+                if(i==total-1 && g_list_nth(indev_list, i)->next==NULL)
+                        LOGINFO("okokok");
+        }
+        LOGINFO("***************************\n");
+}
 
 static GList *find_glist(GList *glist, char *path)
 {
@@ -1010,6 +1152,8 @@ static void input_cb(void* data)
 					}
 					ret=0;
 				}
+				/* debug */
+				printglist();
 
 				break;
 			}
@@ -1059,7 +1203,7 @@ static int set_noti(int noti_fd)
 static int unset_noti(int noti_fd)
 {
 	if (noti_fd < 0) {
-		LOGDBG("set noti already failed. nothing to do in unset");
+		LOGINFO("set noti already failed. nothing to do in unset");
 		return 0;
 	}
 
@@ -1113,7 +1257,7 @@ void start_main(unsigned int flags)
 				ret = init_sysfs(flags);
 				break;
 			case INIT_POLL:
-				LOGDBG("poll init");
+				LOGINFO("poll init");
 				ret = init_pm_poll(poll_callback);
 				break;
 		}

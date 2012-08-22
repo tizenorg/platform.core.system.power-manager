@@ -153,7 +153,7 @@ static int init_sock(char *sock_path)
 	if (!strcmp(sock_path, SOCK_PATH))
 		sockfd = fd;
 
-	LOGDBG("init sock() sueccess!");
+	LOGINFO("init sock() sueccess!");
 	return fd;
 }
 
@@ -173,7 +173,7 @@ int init_pm_poll(int (*pm_callback) (int, PMMsg *))
 
 	pm_input_env = getenv("PM_INPUT");
 	if ((pm_input_env != NULL) && (strlen(pm_input_env) < 1024)) {
-		LOGDBG("Getting input device path from environment: %s",
+		LOGINFO("Getting input device path from environment: %s",
 		       pm_input_env);
 		/* Add 2 bytes for following strncat() */
 		dev_paths_size =  strlen(pm_input_env) + strlen(SOCK_PATH) + strlen(DEV_PATH_DLM) + 1;
@@ -212,11 +212,11 @@ int init_pm_poll(int (*pm_callback) (int, PMMsg *))
 
 		if (strcmp(path_tok, SOCK_PATH) == 0) {
 			gpollfd->fd = init_sock(SOCK_PATH);
-			LOGDBG("pm_poll domain socket file: %s, fd: %d",
+			LOGINFO("pm_poll domain socket file: %s, fd: %d",
 			       path_tok, gpollfd->fd);
 		} else {
 			gpollfd->fd = open(path_tok, O_RDONLY);
-			LOGDBG("pm_poll input device file: %s, fd: %d",
+			LOGINFO("pm_poll input device file: %s, fd: %d",
 			       path_tok, gpollfd->fd);
 		}
 

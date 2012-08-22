@@ -103,17 +103,6 @@ extern void pm_log(int priority, char *fmt, ...);
 #  define LOGERR(fmt, arg...) pm_log(LOG_ERR, fmt, ## arg)
 #endif
 
-/*
- * @brief LOG_DEBUG wrapper
- */
-#if defined(DEBUG_PRINT) && defined(ENABLE_DLOG_OUT)
-#  define LOGDBG(fmt, arg...) pm_log(DLOG_DEBUG, fmt, ## arg)
-#elif defined(DEBUG_PRINT)
-#  define LOGDBG(fmt, arg...) pm_log(LOG_DEBUG, fmt, ## arg)
-#else
-#  define LOGDBG(fmt, arg...) do { } while (0);
-#endif
-
 /**
  * @}
  */

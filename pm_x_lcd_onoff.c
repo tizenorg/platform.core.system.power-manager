@@ -33,7 +33,7 @@ static int pm_x_set_lcd_backlight(struct _PMSys *p, int onoff)
 	char cmd_line[32];
 	int ret;
 
-	LOGDBG("Backlight onoff=%d", onoff);
+	LOGINFO("Backlight onoff=%d", onoff);
 	if (onoff == STATUS_ON)
 		snprintf(cmd_line, sizeof(cmd_line), "%s", CMD_STANDBY);
 	else

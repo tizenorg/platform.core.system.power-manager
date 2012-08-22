@@ -1,6 +1,6 @@
 #!/bin/sh
 
-vconftool set -t int memory/pwrmgr/state 0 -i
+vconftool set -t int memory/pm/state 0 -i
 
 heynotitool set system_wakeup
 

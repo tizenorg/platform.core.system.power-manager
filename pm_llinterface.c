@@ -29,6 +29,8 @@
 #include "pm_device_plugin.h"
 #include "util.h"
 #include "pm_conf.h"
+#include "vconf.h"
+#include "pm_core.h"
 
 typedef struct _PMSys PMSys;
 struct _PMSys {
@@ -38,6 +40,7 @@ struct _PMSys {
 	int (*sys_suspend) (PMSys *);
 	int (*bl_onoff) (PMSys *, int);
 	int (*bl_brt) (PMSys *, int);
+	int (*bl_dim) (PMSys *);
 };
 
 static PMSys *pmsys;
@@ -49,7 +52,14 @@ static bool x_dpms_enable = false;
 
 static void _update_curbrt(PMSys *p)
 {
-	plugin_intf->OEM_sys_get_backlight_brightness(DEFAULT_DISPLAY, &(p->def_brt));
+	int power_saving_stat = -1;
+	int power_saving_display_stat = -1;
+	vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_SYSMODE_STATUS, &power_saving_stat);
+	if (power_saving_stat == 1)
+		vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_CUSTMODE_DISPLAY, &power_saving_display_stat);
+	if (power_saving_display_stat != 1)
+		power_saving_display_stat = 0;
+	plugin_intf->OEM_sys_get_backlight_brightness(DEFAULT_DISPLAY, &(p->def_brt), power_saving_display_stat);
 }
 
 static int _bl_onoff(PMSys *p, int onoff)
@@ -59,7 +69,25 @@ static int _bl_onoff(PMSys *p, int onoff)
 
 static int _bl_brt(PMSys *p, int brightness)
 {
-	return plugin_intf->OEM_sys_set_backlight_brightness(DEFAULT_DISPLAY, brightness);
+	int power_saving_stat = -1;
+	int power_saving_display_stat = -1;
+	vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_SYSMODE_STATUS, &power_saving_stat);
+	if (power_saving_stat == 1)
+		vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_CUSTMODE_DISPLAY, &power_saving_display_stat);
+	if (power_saving_display_stat != 1)
+		power_saving_display_stat = 0;
+	int ret = plugin_intf->OEM_sys_set_backlight_brightness(DEFAULT_DISPLAY, brightness, power_saving_display_stat);
+LOGERR("set brightness %d,%d(saving %d) %d", DEFAULT_DISPLAY, brightness, power_saving_display_stat, ret);
+	return ret;
+}
+
+static int _bl_dim(PMSys *p)
+{
+	int ret = -1;
+
+	LOGINFO("LCD dim");
+	ret = plugin_intf->OEM_sys_set_backlight_dimming(DEFAULT_DISPLAY, 1);
+	return ret;
 }
 
 static int _sys_suspend(PMSys *p)
@@ -70,9 +98,10 @@ static int _sys_suspend(PMSys *p)
 static void _init_bldev(PMSys *p, unsigned int flags)
 {
 	int ret;
-		_update_curbrt(p);
-		p->bl_brt = _bl_brt;
-		p->bl_onoff = _bl_onoff;
+	_update_curbrt(p);
+	p->bl_brt = _bl_brt;
+	p->bl_onoff = _bl_onoff;
+	p->bl_dim = _bl_dim;
 #ifdef ENABLE_X_LCD_ONOFF
 	if (flags & FLAG_X_DPMS) {
 		p->bl_onoff = pm_x_set_lcd_backlight;
@@ -128,8 +157,8 @@ int backlight_off()
 int backlight_dim()
 {
 	int ret = 0;
-	if (pmsys && pmsys->bl_brt) {
-		ret = pmsys->bl_brt(pmsys, pmsys->dim_brt);
+	if (pmsys && pmsys->bl_dim) {
+		ret = pmsys->bl_dim(pmsys);
 	}
 	return ret;
 }
@@ -137,7 +166,10 @@ int backlight_dim()
 int backlight_restore()
 {
 	int ret = 0;
-	if (pmsys && pmsys->bl_brt) {
+
+	if (status_flag & PWRSV_FLAG) {
+		ret = backlight_dim();
+	} else if (pmsys && pmsys->bl_brt) {
 		ret = pmsys->bl_brt(pmsys, pmsys->def_brt);
 	}
 	return ret;
@@ -184,7 +216,7 @@ int init_sysfs(unsigned int flags)
 
 	if (pmsys->bl_onoff == NULL && pmsys->sys_suspend == NULL) {
 		LOGERR
-			("We have no managable resource to reduce the power consumption");
+		    ("We have no managable resource to reduce the power consumption");
 		return -1;
 	}
 

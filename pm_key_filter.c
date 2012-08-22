@@ -40,8 +40,6 @@
 #define LONG_PRESS_INTERVAL		1000000	/* 1000 ms */
 #define COMBINATION_INTERVAL	300000	/* 300 ms */
 
-#define VCONFKEY_TESTMODE_POWER_OFF_POPUP	"db/testmode/pwr_off_popup"
-
 #define KEY_RELEASED		0
 #define KEY_PRESSED			1
 #define KEY_BEING_PRESSED	2
@@ -97,68 +95,63 @@ int check_key_filter(int length, char buf[])
 	int ignore = true;
 	int idx = 0;
 	int val = -1;
-	int val1 = -1;
-	int ret = -1;
-	int ret1 = -1;
 
 	do {
 		pinput = (struct input_event *)&buf[idx];
 		if (pinput->type == EV_SYN) ;
 		else if (pinput->type == EV_KEY) {
 			if (pinput->code == KEY_POWER) {
-				ret = vconf_get_int("memory/startapps/sequence", &val);
-				ret1 = vconf_get_int("memory/boot-animation/finished", &val1);
-				if ((val == 1 || ret != 0) && (val1 == 1 || ret1 != 0)) {
-					if (pinput->value == KEY_RELEASED) {	/* release */
-						if (!(cur_state == S_LCDOFF || cur_state == S_SLEEP) && !cancel_lcdoff && !(key_combination == KEY_COMBINATION_SCREENCAPTURE)) {
-							check_processes(S_LCDOFF);
-							check_processes(S_LCDDIM);
-							if (!(trans_condition & (MASK_DIM | MASK_OFF))) {
-								recv_data.pid = -1;
-								recv_data.cond = 0x400;		/* go to S_LCDOFF */
-								if(vconf_get_int(VCONFKEY_FLASHPLAYER_FULLSCREEN, &val)<0 || val == 0)
-									(*g_pm_callback)(PM_CONTROL_EVENT, &recv_data);
-							}
-						} else
-							ignore = false;
-						key_combination = KEY_COMBINATION_STOP;
+				if (pinput->value == KEY_RELEASED) {	/* release */
+					if (!(cur_state == S_LCDOFF || cur_state == S_SLEEP) && !cancel_lcdoff && !(key_combination == KEY_COMBINATION_SCREENCAPTURE)) {
+						check_processes(S_LCDOFF);
+						check_processes(S_LCDDIM);
+						if( check_holdkey_block(S_LCDOFF) == false &&
+								check_holdkey_block(S_LCDDIM) == false) {
+							delete_condition(S_LCDOFF);
+							delete_condition(S_LCDDIM);
+							/* LCD off forcly */
+							recv_data.pid = -1;
+							recv_data.cond = 0x400;
+							if(vconf_get_int(VCONFKEY_FLASHPLAYER_FULLSCREEN, &val)<0 || val == 0)
+								(*g_pm_callback)(PM_CONTROL_EVENT, &recv_data);
+						}
+					} else
+						ignore = false;
+					key_combination = KEY_COMBINATION_STOP;
+					if (combination_timeout_id > 0) {
+						g_source_remove(combination_timeout_id);
+						combination_timeout_id = 0;
+					}
+					cancel_lcdoff = 0;
+					if (longkey_timeout_id > 0) {
+						g_source_remove(longkey_timeout_id);
+						longkey_timeout_id = 0;
+					}
+				} else if (pinput->value == KEY_PRESSED) {
+					LOGINFO("power key pressed");
+					pressed_time.tv_sec = (pinput->time).tv_sec;
+					pressed_time.tv_usec = (pinput->time).tv_usec;
+					if (key_combination == KEY_COMBINATION_STOP) {
+						/* add long key timer */
+						longkey_timeout_id = g_timeout_add_full(G_PRIORITY_DEFAULT, LONG_PRESS_INTERVAL / 1000,
+								(GSourceFunc)longkey_pressed, NULL, NULL);
+						key_combination = KEY_COMBINATION_START;
+						combination_timeout_id = g_timeout_add_full(G_PRIORITY_DEFAULT, COMBINATION_INTERVAL / 1000,
+								(GSourceFunc)combination_failed, NULL, NULL);
+					} else if (key_combination == KEY_COMBINATION_START) {
 						if (combination_timeout_id > 0) {
 							g_source_remove(combination_timeout_id);
 							combination_timeout_id = 0;
 						}
-						cancel_lcdoff = 0;
-						if (longkey_timeout_id > 0) {
-							g_source_remove(longkey_timeout_id);
-							longkey_timeout_id = 0;
-						}
-					} else if (pinput->value == KEY_PRESSED) {
-						LOGINFO("power key pressed");
-						pressed_time.tv_sec = (pinput->time).tv_sec;
-						pressed_time.tv_usec = (pinput->time).tv_usec;
-						if (key_combination == KEY_COMBINATION_STOP) {
-							/* add long key timer */
-							longkey_timeout_id = g_timeout_add_full(G_PRIORITY_DEFAULT, LONG_PRESS_INTERVAL / 1000, 
-									(GSourceFunc)longkey_pressed, NULL, NULL);
-							key_combination = KEY_COMBINATION_START;
-							combination_timeout_id = g_timeout_add_full(G_PRIORITY_DEFAULT, COMBINATION_INTERVAL / 1000, 
-									(GSourceFunc)combination_failed, NULL, NULL);
-						} else if (key_combination == KEY_COMBINATION_START) {
-							if (combination_timeout_id > 0) {
-								g_source_remove(combination_timeout_id);
-								combination_timeout_id = 0;
-							}
-							LOGINFO("capture mode");
-							key_combination = KEY_COMBINATION_SCREENCAPTURE;
-							ignore = false;
-						}
+						LOGINFO("capture mode");
+						key_combination = KEY_COMBINATION_SCREENCAPTURE;
+						ignore = false;
+					}
 
-					} else if (pinput->value == KEY_BEING_PRESSED &&	/* being pressed */
-							(((pinput->time).tv_sec - pressed_time.tv_sec) * 1000000 + ((pinput->time).tv_usec - pressed_time.tv_usec)) 
-							> LONG_PRESS_INTERVAL) {
-						longkey_pressed(NULL);
-					} 
-				} else {
-					ignore = false;
+				} else if (pinput->value == KEY_BEING_PRESSED &&	/* being pressed */
+						(((pinput->time).tv_sec - pressed_time.tv_sec) * 1000000 + ((pinput->time).tv_usec - pressed_time.tv_usec))
+						> LONG_PRESS_INTERVAL) {
+					longkey_pressed(NULL);
 				}
 			} else {
 				if (pinput->code == KEY_VOLUMEDOWN) {

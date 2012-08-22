@@ -22,11 +22,13 @@
 #include "util.h"
 
 static const char *setting_keys[SETTING_GET_END] = {
-	[SETTING_TO_NORMAL] = VCONFKEY_SYSMAN_LCD_TIMEOUT_NORMAL,
+	[SETTING_TO_NORMAL] = VCONFKEY_SETAPPL_LCD_TIMEOUT_NORMAL,
 	[SETTING_LOW_BATT] = VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
 	[SETTING_CHARGING] = VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
 	[SETTING_BRT_LEVEL] = VCONFKEY_SETAPPL_LCD_BRIGHTNESS,
 	[SETTING_LOCK_SCREEN] = VCONFKEY_IDLE_LOCK_STATE,
+	[SETTING_POWER_SAVING] = VCONFKEY_SETAPPL_PWRSV_SYSMODE_STATUS,
+	[SETTING_POWER_SAVING_DISPLAY] = VCONFKEY_SETAPPL_PWRSV_CUSTMODE_DISPLAY,
 };
 
 static int (*update_setting) (int key_idx, int val);
@@ -67,7 +69,11 @@ int get_run_timeout(int *timeout)
 	}
 
 	ret = vconf_get_int(setting_keys[SETTING_TO_NORMAL], &vconf_timeout);
-	*timeout = vconf_timeout - dim_timeout;
+
+	if(vconf_timeout == 0)
+		*timeout = 0; //timeout 0 : Always ON (Do not apply dim_timeout)
+	else
+		*timeout = vconf_timeout - dim_timeout;
 	return ret;
 
 }
@@ -78,7 +84,7 @@ int get_dim_timeout(int *timeout)
 	/* TODO if needed */
 	*timeout = 5;		/* default timeout */
 	get_env("PM_TO_LCDDIM", buf, sizeof(buf));
-	LOGDBG("Get lcddim timeout [%s]", buf);
+	LOGINFO("Get lcddim timeout [%s]", buf);
 	*timeout = atoi(buf);
 	return 0;
 }
@@ -89,7 +95,7 @@ int get_off_timeout(int *timeout)
 	/* TODO if needed */
 	*timeout = 5;		/* default timeout */
 	get_env("PM_TO_LCDOFF", buf, sizeof(buf));
-	LOGDBG("Get lcdoff timeout [%s]", buf);
+	LOGINFO("Get lcdoff timeout [%s]", buf);
 	*timeout = atoi(buf);
 	return 0;
 }
@@ -104,7 +110,10 @@ static int setting_cb(keynode_t *key_nodes, void *data)
 		return -1;
 	}
 	if (update_setting != NULL) {
-		update_setting((int)data, vconf_keynode_get_int(tmp));
+		if ((int)data >= SETTING_POWER_SAVING)
+			update_setting((int)data, vconf_keynode_get_bool(tmp));
+		else
+			update_setting((int)data, vconf_keynode_get_int(tmp));
 	}
 
 	return 0;
