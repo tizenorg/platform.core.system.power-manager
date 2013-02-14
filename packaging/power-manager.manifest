@@ -1,0 +1,9 @@
+<manifest>
+    <define>
+        <domain name="power_manager"/>
+    </define>
+    <request>
+        <domain name="power_manager"/>
+    </request>
+</manifest>
+
