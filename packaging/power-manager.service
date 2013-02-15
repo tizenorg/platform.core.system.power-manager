@@ -1,0 +1,10 @@
+[Unit]
+Description=Start the power manager service
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/pmctrl start
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=multi-user.target
