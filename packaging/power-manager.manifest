@@ -1,0 +1,13 @@
+<manifest>
+    <define>
+        <domain name="power_manager"/>
+    </define>
+    <request>
+        <domain name="power_manager"/>
+    </request>
+    <assign>
+        <filesystem path="/etc/rc.d/init.d/pmctrl" label="_" exec_label="none" />
+        <filesystem path="/etc/rc.d/rc3.d/S35power-manager" label="_" exec_label="none" />
+    </assign>
+</manifest>
+
