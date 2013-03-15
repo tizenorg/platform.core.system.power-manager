@@ -55,12 +55,12 @@ case "$1" in
 		;;
 	stop)
 		if [ -e /var/run/power-manager.pid ] ; then
-			kill -USR2 `cat /var/run/power-manager.pid`
+			kill `cat /var/run/power-manager.pid`
 		fi
 		;;
 	restart)
 		if [ -e /var/run/power-manager.pid ] ; then
-			kill -USR2 `cat /var/run/power-manager.pid`
+			kill `cat /var/run/power-manager.pid`
 			# sleep 1 second to wait PID file get removed
 			sleep 1
 		fi

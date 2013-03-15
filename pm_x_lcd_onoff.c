@@ -23,8 +23,6 @@
 #include <sys/wait.h>
 #include <errno.h>
 
-#include "pm_device_plugin.h"
-
 #define CMD_ON		"on"
 #define CMD_OFF		"off"
 

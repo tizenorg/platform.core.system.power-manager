@@ -40,8 +40,8 @@
 #include <sysman.h>
 #include <aul.h>
 #include <vconf-keys.h>
+#include <device-node.h>
 
-#include "pm_device_plugin.h"
 #include "pm_core.h"
 #include "pm_battery.h"
 
@@ -755,7 +755,7 @@ static int default_action(int timeout)
 			setitimer(ITIMER_REAL, &val, NULL);
 
 			/* sleep state : set system mode to SUSPEND */
-			if (0 > plugin_intf->OEM_sys_get_power_wakeup_count(&wakeup_count)) 
+			if (0 > device_get_property(DEVICE_TYPE_POWER, PROP_POWER_WAKEUP_COUNT, &wakeup_count))
 				LOGERR("wakeup count read error");
 
 			if (wakeup_count < 0) {
@@ -763,7 +763,7 @@ static int default_action(int timeout)
 				goto go_lcd_off;
 			}
 
-			if (0 > plugin_intf->OEM_sys_set_power_wakeup_count(wakeup_count)) {
+			if (0 > device_set_property(DEVICE_TYPE_POWER, PROP_POWER_WAKEUP_COUNT, wakeup_count)) {
 				LOGERR("wakeup count write error");
 				goto go_lcd_off;
 			}
@@ -1024,7 +1024,7 @@ static int update_setting(int key_idx, int val)
 			vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_CUSTMODE_DISPLAY, &power_saving_display_stat);
 		if (power_saving_display_stat != 1)
 			power_saving_display_stat = 0;
-		plugin_intf->OEM_sys_set_display_frame_rate(power_saving_display_stat);
+		device_set_property(DEVICE_TYPE_DISPLAY, PROP_DISPLAY_FRAME_RATE, power_saving_display_stat);
 		backlight_restore();
 		break;
 	case SETTING_POWER_SAVING_DISPLAY:
@@ -1034,7 +1034,7 @@ static int update_setting(int key_idx, int val)
 				power_saving_display_stat = 1;
 			else
 				power_saving_display_stat = 0;
-			plugin_intf->OEM_sys_set_display_frame_rate(power_saving_display_stat);
+			device_set_property(DEVICE_TYPE_DISPLAY, PROP_DISPLAY_FRAME_RATE, power_saving_display_stat);
 			backlight_restore();
 		}
 		break;
@@ -1218,29 +1218,30 @@ static void input_cb(void* data)
 	return ;
 }
 
-static int set_noti(int noti_fd)
+static int set_noti(int *noti_fd)
 {
 	int fd;
 	char buf[PATH_MAX];
 
-	noti_fd = heynoti_init();
-	if (noti_fd < 0) {
+	fd = heynoti_init();
+	if (fd < 0) {
 		LOGERR("heynoti_init error");
 		return -1;
 	}
 
-	if (heynoti_subscribe(noti_fd, PM_EVENT_NOTI_NAME, input_cb, PM_EVENT_NOTI_PATH) < 0) {
+	if (heynoti_subscribe(fd, PM_EVENT_NOTI_NAME, input_cb, PM_EVENT_NOTI_PATH) < 0) {
 		LOGERR("input file change noti add failed(%s). %s", buf, strerror(errno));
 		return -1;
 	} else {
 		LOGERR("input file change noti add ok");
 	}
 
-	if (heynoti_attach_handler(noti_fd) < 0) {
+	if (heynoti_attach_handler(fd) < 0) {
 		LOGERR("heynoti_attach_handler error");
 		return -1;
 	}
 
+	*noti_fd = fd;
 	return 0;
 }
 
@@ -1269,26 +1270,23 @@ void start_main(unsigned int flags)
 {
 	int ret, i;
 
-	if (0 > _pm_devman_plugin_init()) {
-		LOGERR("Device Manager Plugin initialize failed");
-		exit (-1);
-	}
-
 	LOGINFO("Start power manager daemon");
 
+	signal(SIGINT, sig_quit);
+	signal(SIGTERM, sig_quit);
+	signal(SIGQUIT, sig_quit);
 	signal(SIGHUP, sig_hup);
 	signal(SIGCHLD, SIG_IGN);
 	signal(SIGUSR1, sig_usr);
-	signal(SIGUSR2, sig_quit);
 	signal(SIGALRM, sig_break_block);
 
 	mainloop = g_main_loop_new(NULL, FALSE);
 	power_saving_func = default_saving_mode;
 
 	/* noti init for new input device like bt mouse */
-	int noti_fd;
+	int noti_fd = -1;
 	indev_list=NULL;
-	set_noti(noti_fd);
+	set_noti(&noti_fd);
 
 	for (i = INIT_SETTING; i < INIT_END; i++) {
 		switch (i) {

@@ -26,12 +26,15 @@
 #include <glib.h>
 #include <vconf.h>
 #include <sensor.h>
+#include <device-node.h>
 
 #include "pm_core.h"
-#include "pm_device_plugin.h"
 
 #define SAMPLING_INTERVAL	1	/* 1 sec */
 #define MAX_FAULT			5
+
+#define DISP_INDEX_BIT                      4
+#define COMBINE_DISP_CMD(cmd, prop, index)  (cmd = (prop | (index << DISP_INDEX_BIT)))
 
 static int (*prev_init_extention) (void *data);
 static int (*_default_action) (int);
@@ -59,18 +62,14 @@ static gboolean alc_handler(gpointer data)
 				fault_count++;
 			} else {
 				int tmp_value;
-				int power_saving_stat = -1;
-				int power_saving_display_stat = -1;
-				vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_SYSMODE_STATUS, &power_saving_stat);
-				if (power_saving_stat == 1)
-					vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_CUSTMODE_DISPLAY, &power_saving_display_stat);
-				if (power_saving_display_stat != 1)
-					power_saving_display_stat = 0;
+				int cmd;
 				value = PM_MAX_BRIGHTNESS * (int)light_data.values[0] / 10;
-				plugin_intf->OEM_sys_get_backlight_brightness(DEFAULT_DISPLAY, &tmp_value, power_saving_display_stat);
+				COMBINE_DISP_CMD(cmd, PROP_DISPLAY_BRIGHTNESS, DEFAULT_DISPLAY);
+				device_get_property(DEVICE_TYPE_DISPLAY, cmd, &tmp_value);
 				if (tmp_value != value) {
 					set_default_brt(value);
 					backlight_restore();
+					vconf_set_int(VCONFKEY_PM_CURRENT_BRIGHTNESS, value);
 				}
 				LOGINFO("load light data : %d, brightness : %d", (int)light_data.values[0], value);
 			}

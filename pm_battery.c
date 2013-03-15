@@ -21,7 +21,6 @@
 #include <stdlib.h>
 
 #include "pm_core.h"
-#include "pm_device_plugin.h"
 #include "pm_battery.h"
 
 #define CHARGING_STATE(x)	((x) & CHRGR_FLAG)

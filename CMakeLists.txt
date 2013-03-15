@@ -10,7 +10,6 @@ SET(SRCS
 	pm_poll.c
 	pm_core.c
 	pm_lsensor.c
-	pm_device_plugin.c
 	pm_key_filter.c
 	pm_battery.c )
 
@@ -25,7 +24,7 @@ SET(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 SET(CMAKE_C_FLAGS_RELEASE "-O2")
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs REQUIRED vconf glib-2.0 sysman aul dlog heynoti devman_plugin sensor)
+pkg_check_modules(pkgs REQUIRED vconf glib-2.0 sysman aul dlog heynoti device-node sensor)
 
 FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")

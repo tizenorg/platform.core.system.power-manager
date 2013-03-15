@@ -8,6 +8,8 @@
     <assign>
         <filesystem path="/etc/rc.d/init.d/pmctrl" label="_" exec_label="none" />
         <filesystem path="/etc/rc.d/rc3.d/S35power-manager" label="_" exec_label="none" />
+	<filesystem path="/usr/lib/systemd/system/power-manager.service" label="_" exec_label="none" />
+	<filesystem path="/usr/lib/systemd/system/multi-user.target.wants/power-manager.service" label="_" exec_label="none" />
     </assign>
 </manifest>
 

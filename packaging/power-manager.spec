@@ -1,7 +1,7 @@
 Name:       power-manager
 Summary:    Power manager
 Version:    1.3.23
-Release:    8
+Release:    9
 Group:      framework/system
 License:    APLv2
 Source0:    %{name}-%{version}.tar.gz
@@ -16,7 +16,7 @@ BuildRequires:  pkgconfig(aul)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(sensor)
 BuildRequires:  pkgconfig(devman)
-BuildRequires:  pkgconfig(devman_plugin)
+BuildRequires:  pkgconfig(device-node)
 BuildRequires:  pkgconfig(heynoti)
 
 %description
@@ -61,6 +61,8 @@ vconftool set -t int memory/pm/battery_timetofull -1 -i
 vconftool set -t int memory/pm/battery_timetoempty -1 -i
 vconftool set -t int memory/pm/custom_brightness_status 0 -i -g 5000
 vconftool set -t bool memory/pm/brt_changed_lpm 0 -i
+vconftool set -t int memory/pm/current_brt 60 -i -g 5000
+
 
 heynotitool set system_wakeup
 heynotitool set pm_event

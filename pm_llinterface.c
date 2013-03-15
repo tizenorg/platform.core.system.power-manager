@@ -25,13 +25,16 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <device-node.h>
+#include <vconf.h>
 
 #include "pm_llinterface.h"
-#include "pm_device_plugin.h"
 #include "util.h"
 #include "pm_conf.h"
-#include "vconf.h"
 #include "pm_core.h"
+
+#define DISP_INDEX_BIT                      4
+#define COMBINE_DISP_CMD(cmd, prop, index)  (cmd = (prop | (index << DISP_INDEX_BIT)))
 
 typedef struct _PMSys PMSys;
 struct _PMSys {
@@ -69,20 +72,17 @@ static void _update_curbrt(PMSys *p)
 
 static int _bl_onoff(PMSys *p, int onoff)
 {
-	return plugin_intf->OEM_sys_set_lcd_power(DEFAULT_DISPLAY, onoff);
+	int cmd;
+	COMBINE_DISP_CMD(cmd, PROP_DISPLAY_ONOFF, DEFAULT_DISPLAY);
+	return device_set_property(DEVICE_TYPE_DISPLAY, cmd, onoff);
 }
 
 static int _bl_brt(PMSys *p, int brightness)
 {
-	int power_saving_stat = -1;
-	int power_saving_display_stat = -1;
-	vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_SYSMODE_STATUS, &power_saving_stat);
-	if (power_saving_stat == 1)
-		vconf_get_bool(VCONFKEY_SETAPPL_PWRSV_CUSTMODE_DISPLAY, &power_saving_display_stat);
-	if (power_saving_display_stat != 1)
-		power_saving_display_stat = 0;
-	int ret = plugin_intf->OEM_sys_set_backlight_brightness(DEFAULT_DISPLAY, brightness, power_saving_display_stat);
-LOGERR("set brightness %d,%d(saving %d) %d", DEFAULT_DISPLAY, brightness, power_saving_display_stat, ret);
+	int cmd;
+	COMBINE_DISP_CMD(cmd, PROP_DISPLAY_BRIGHTNESS, DEFAULT_DISPLAY);
+	int ret = device_set_property(DEVICE_TYPE_DISPLAY, cmd, brightness);
+	LOGERR("set brightness %d,%d %d", DEFAULT_DISPLAY, brightness, ret);
 	return ret;
 }
 
@@ -90,7 +90,7 @@ static int _sys_power_state(PMSys *p, int state)
 {
 	if (state < POWER_STATE_SUSPEND || state > POWER_STATE_POST_RESUME)
 		return 0;
-	return plugin_intf->OEM_sys_set_power_state(state);
+	return device_set_property(DEVICE_TYPE_POWER, PROP_POWER_STATE, state);
 }
 
 static int _sys_get_battery_capacity(PMSys *p)
@@ -98,8 +98,7 @@ static int _sys_get_battery_capacity(PMSys *p)
 	int value = 0;
 	int ret = -1;
 
-	ret = plugin_intf->OEM_sys_get_battery_capacity(&value);
-
+	ret = device_get_property(DEVICE_TYPE_POWER, PROP_POWER_CAPACITY, &value);
 	if(ret < 0)
 		return -1;
 
@@ -114,8 +113,7 @@ static int _sys_get_battery_capacity_raw(PMSys *p)
 	int value = 0;
 	int ret = -1;
 
-	ret = plugin_intf->OEM_sys_get_battery_capacity_raw(&value);
-
+	ret = device_get_property(DEVICE_TYPE_POWER, PROP_POWER_CAPACITY_RAW, &value);
 	if(ret < 0)
 		return -1;
 
@@ -130,8 +128,7 @@ static int _sys_get_battery_charge_full(PMSys *p)
 	int value = 0;
 	int ret = -1;
 
-	ret = plugin_intf->OEM_sys_get_battery_charge_full(&value);
-
+	ret = device_get_property(DEVICE_TYPE_POWER, PROP_POWER_CHARGE_FULL, &value);
 	if(ret < 0)
 		return -1;
 
