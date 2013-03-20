@@ -2,7 +2,7 @@
 
 KERNVER=`uname -r`
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib:@LIB_INSTALL_DIR@
 export PATH=$PATH:/usr/bin
 export ELM_FONT_PATH=@PREFIX@/share/SLP/fonts:@PREFIX@/share/SLP/licensed_fonts:@PREFIX@/share/fonts/truetype/ttf-bitstream-vera
 export PM_EXEC_PRG=@PREFIX@/bin/@IDLE_LOCK@

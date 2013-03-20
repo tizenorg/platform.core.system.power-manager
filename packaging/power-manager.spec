@@ -39,7 +39,7 @@ CFLAGS+=" -DX86"
 %endif
 export CFLAGS
 %endif
-cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix}
+%cmake .
 
 make %{?jobs:-j%jobs}
 
@@ -47,9 +47,9 @@ make %{?jobs:-j%jobs}
 rm -rf %{buildroot}
 %make_install
 
-mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
-install -m 0644 %{SOURCE1} %{buildroot}%{_libdir}/systemd/system/power-manager.service
-ln -s ../power-manager.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/power-manager.service
+mkdir -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
+install -m 0644 %{SOURCE1} %{buildroot}/usr/lib/systemd/system/power-manager.service
+ln -s ../power-manager.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/power-manager.service
 
 mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc3.d/
 mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc5.d/
@@ -81,6 +81,6 @@ fi
 %{_bindir}/pm_event
 %{_bindir}/pmctrl
 %{_bindir}/power_manager
-%{_libdir}/systemd/system/power-manager.service
-%{_libdir}/systemd/system/multi-user.target.wants/power-manager.service
+/usr/lib/systemd/system/power-manager.service
+/usr/lib/systemd/system/multi-user.target.wants/power-manager.service
 %{_datadir}/power-manager/udev-rules/91-power-manager.rules
