@@ -119,6 +119,26 @@ gboolean pm_handler(gpointer data)
 	return TRUE;
 }
 
+static GList *find_indev_list(char *path)
+{
+	int i;
+	guint total = 0;
+	indev *tmp;
+
+	total = g_list_length(indev_list);
+
+	for (i = 0; i < total; i++) {
+		tmp = (indev*) (g_list_nth(indev_list, i)->data);
+
+		if (!strcmp(tmp->dev_path, path)) {
+			LOGINFO("%s is already in dev list! gfd(%d)", path, tmp->dev_fd);
+			return g_list_nth(indev_list, i);
+		}
+	}
+
+	return NULL;
+}
+
 static int init_sock(char *sock_path)
 {
 	struct sockaddr_un serveraddr;
@@ -207,6 +227,10 @@ int init_pm_poll(int (*pm_callback) (int, PMMsg *))
 	funcs->finalize = NULL;
 
 	do {
+		indev *adddev = NULL;
+		char *path, *new_path;
+		int len;
+
 		src = g_source_new(funcs, sizeof(GSource));
 
 		gpollfd = (GPollFD *) g_malloc(sizeof(GPollFD));
@@ -214,10 +238,12 @@ int init_pm_poll(int (*pm_callback) (int, PMMsg *))
 
 		if (strcmp(path_tok, SOCK_PATH) == 0) {
 			gpollfd->fd = init_sock(SOCK_PATH);
+			path = SOCK_PATH;
 			LOGINFO("pm_poll domain socket file: %s, fd: %d",
 			       path_tok, gpollfd->fd);
 		} else {
 			gpollfd->fd = open(path_tok, O_RDONLY);
+			path = path_tok;
 			LOGINFO("pm_poll input device file: %s, fd: %d",
 			       path_tok, gpollfd->fd);
 		}
@@ -227,6 +253,30 @@ int init_pm_poll(int (*pm_callback) (int, PMMsg *))
 			free(dev_paths);
 			return -1;
 		}
+
+		len = strlen(path) + 1;
+		new_path = (char *) malloc(len);
+		if (!new_path) {
+			LOGERR("Fail to alloc new path: %s", path_tok);
+			free(dev_paths);
+			return -1;
+		}
+		strncpy(new_path, path, len);
+
+		adddev = (indev *) malloc(sizeof(indev));
+		if (!adddev) {
+			LOGERR("Fail to alloc indev: %s", path_tok);
+			free(dev_paths);
+			return -1;
+		}
+		adddev->dev_path = new_path;
+		adddev->dev_src = src;
+		adddev->dev_fd = gpollfd;
+
+		indev_list = g_list_append(indev_list, adddev);
+		LOGINFO("pm_poll for input dev file(path:%s, gsource:%d, gpollfd:%d",
+			    adddev->dev_path, adddev->dev_src, adddev->dev_fd);
+
 		g_source_add_poll(src, gpollfd);
 		g_source_set_callback(src, (GSourceFunc) pm_handler,
 				      (gpointer) gpollfd, NULL);
@@ -267,6 +317,12 @@ int init_pm_poll_input(int (*pm_callback)(int , PMMsg * ), const char *path)
 	GSource *devsrc;
 
 	LOGINFO("initialize pm poll for bt %s",path);
+
+	if(find_indev_list(path)) {
+		LOGERR("%s is already in dev list!", path);
+		return -1;
+	}
+
 	adddev=(indev *)malloc(sizeof(indev));
 	adddev->dev_fd = (GPollFD *)g_malloc(sizeof(GPollFD));
 	(adddev->dev_fd)->events = POLLIN;
