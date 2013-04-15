@@ -245,7 +245,14 @@ int backlight_off()
 int backlight_dim()
 {
 	int ret = 0;
+	int cmd;
+	int brightness;
+
 	if (pmsys && pmsys->bl_brt) {
+		COMBINE_DISP_CMD(cmd, PROP_DISPLAY_BRIGHTNESS, DEFAULT_DISPLAY);
+		ret = device_get_property(DEVICE_TYPE_DISPLAY, cmd, &brightness);
+		if (!ret && pmsys->dim_brt != brightness)
+			vconf_set_int(VCONFKEY_PM_CURRENT_BRIGHTNESS, pmsys->dim_brt);
 		ret = pmsys->bl_brt(pmsys, pmsys->dim_brt);
 	}
 	return ret;
