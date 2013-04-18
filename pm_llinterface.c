@@ -77,12 +77,24 @@ static int _bl_onoff(PMSys *p, int onoff)
 	return device_set_property(DEVICE_TYPE_DISPLAY, cmd, onoff);
 }
 
-static int _bl_brt(PMSys *p, int brightness)
+static int _bl_brt(PMSys *p, int brt)
 {
 	int cmd;
+	int ret;
+	int old_brt;
+
 	COMBINE_DISP_CMD(cmd, PROP_DISPLAY_BRIGHTNESS, DEFAULT_DISPLAY);
-	int ret = device_set_property(DEVICE_TYPE_DISPLAY, cmd, brightness);
-	LOGERR("set brightness %d,%d %d", DEFAULT_DISPLAY, brightness, ret);
+	ret = device_get_property(DEVICE_TYPE_DISPLAY, cmd, &old_brt);
+
+	/* Update new brightness to vconf */
+	if (!ret && (brt != old_brt))
+		vconf_set_int(VCONFKEY_PM_CURRENT_BRIGHTNESS, brt);
+
+	/* Update device brightness */
+	ret = device_set_property(DEVICE_TYPE_DISPLAY, cmd, brt);
+
+	LOGERR("set brightness %d,%d %d", DEFAULT_DISPLAY, brt, ret);
+
 	return ret;
 }
 
@@ -245,14 +257,8 @@ int backlight_off()
 int backlight_dim()
 {
 	int ret = 0;
-	int cmd;
-	int brightness;
 
 	if (pmsys && pmsys->bl_brt) {
-		COMBINE_DISP_CMD(cmd, PROP_DISPLAY_BRIGHTNESS, DEFAULT_DISPLAY);
-		ret = device_get_property(DEVICE_TYPE_DISPLAY, cmd, &brightness);
-		if (!ret && pmsys->dim_brt != brightness)
-			vconf_set_int(VCONFKEY_PM_CURRENT_BRIGHTNESS, pmsys->dim_brt);
 		ret = pmsys->bl_brt(pmsys, pmsys->dim_brt);
 	}
 	return ret;

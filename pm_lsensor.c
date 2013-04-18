@@ -69,7 +69,6 @@ static gboolean alc_handler(gpointer data)
 				if (tmp_value != value) {
 					set_default_brt(value);
 					backlight_restore();
-					vconf_set_int(VCONFKEY_PM_CURRENT_BRIGHTNESS, value);
 				}
 				LOGINFO("load light data : %d, brightness : %d", (int)light_data.values[0], value);
 			}
