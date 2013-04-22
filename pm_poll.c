@@ -266,6 +266,7 @@ int init_pm_poll(int (*pm_callback) (int, PMMsg *))
 		adddev = (indev *) malloc(sizeof(indev));
 		if (!adddev) {
 			LOGERR("Fail to alloc indev: %s", path_tok);
+			free(new_path);
 			free(dev_paths);
 			return -1;
 		}

@@ -63,10 +63,11 @@ static gboolean alc_handler(gpointer data)
 			} else {
 				int tmp_value;
 				int cmd;
+				int ret;
 				value = PM_MAX_BRIGHTNESS * (int)light_data.values[0] / 10;
 				COMBINE_DISP_CMD(cmd, PROP_DISPLAY_BRIGHTNESS, DEFAULT_DISPLAY);
-				device_get_property(DEVICE_TYPE_DISPLAY, cmd, &tmp_value);
-				if (tmp_value != value) {
+				ret = device_get_property(DEVICE_TYPE_DISPLAY, cmd, &tmp_value);
+				if (!ret && (tmp_value != value)) {
 					set_default_brt(value);
 					backlight_restore();
 				}
