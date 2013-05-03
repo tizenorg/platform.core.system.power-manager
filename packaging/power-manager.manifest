@@ -1,9 +1,6 @@
 <manifest>
-    <define>
-        <domain name="power_manager"/>
-    </define>
     <request>
-        <domain name="power_manager"/>
+        <domain name="deviced"/>
     </request>
     <assign>
         <filesystem path="/etc/rc.d/init.d/pmctrl" label="_" exec_label="none" />
