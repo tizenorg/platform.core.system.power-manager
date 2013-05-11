@@ -18,7 +18,7 @@ BuildRequires:  pkgconfig(sensor)
 BuildRequires:  pkgconfig(devman)
 BuildRequires:  pkgconfig(device-node)
 BuildRequires:  pkgconfig(heynoti)
-Requires: system-server
+Requires(post): system-server
 
 %description
 Description: Power manager
