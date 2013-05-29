@@ -1,0 +1,2 @@
+* Wed May 29 2013 Baptiste DURAND <baptiste.durand@eurogiciel.fr> accepted/tizen/20130520.101252@dd81670
+- Fix x86_64 build and remove hardcoding
