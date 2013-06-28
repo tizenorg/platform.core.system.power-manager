@@ -5,7 +5,7 @@ Release:    9
 Group:      framework/system
 License:    APLv2
 Source0:    %{name}-%{version}.tar.gz
-Source1001: packaging/power-manager.manifest 
+Source1001: power-manager.manifest 
 Requires(post): /usr/bin/vconftool
 Source1:        power-manager.service
 BuildRequires:  cmake
@@ -74,7 +74,7 @@ if ! [ -L /etc/udev/rules.d/91-power-manager.rules ]; then
 fi
 
 %files
-%manifest power-manager.manifest
+%manifest %{name}.manifest
 %{_sysconfdir}/rc.d/init.d/pmctrl
 %{_sysconfdir}/rc.d/rc3.d/S35power-manager
 %{_sysconfdir}/rc.d/rc5.d/S00power-manager
