@@ -1,0 +1,8 @@
+Change-Id: I810accf765e9dcd7accf897a50cdfb6e88f256d7
+Code-Review+2: Ryan Ware <ware@linux.intel.com>
+Verified+1: Ryan Ware <ware@linux.intel.com>
+Submitted-by: Ryan Ware <ware@linux.intel.com>
+Submitted-at: Mon, 08 Jul 2013 10:08:10 -0700
+Reviewed-on: https://review.tizen.org/gerrit/4426
+Project: platform/core/system/power-manager
+Branch: refs/heads/tizen
