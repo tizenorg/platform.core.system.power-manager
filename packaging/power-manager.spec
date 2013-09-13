@@ -56,6 +56,9 @@ mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc5.d/
 ln -s %{_sysconfdir}/init.d/pmctrl %{buildroot}%{_sysconfdir}/rc.d/rc3.d/S35power-manager
 ln -s %{_sysconfdir}/init.d/pmctrl %{buildroot}%{_sysconfdir}/rc.d/rc5.d/S00power-manager
 
+mkdir -p %{buildroot}%{_datadir}/license
+cp LICENSE.APLv2 %{buildroot}%{_datadir}/license/%{name}
+
 %post
 vconftool set -t int memory/pm/state 0 -i
 vconftool set -t int memory/pm/battery_timetofull -1 -i
@@ -84,3 +87,4 @@ fi
 /usr/lib/systemd/system/power-manager.service
 /usr/lib/systemd/system/multi-user.target.wants/power-manager.service
 %{_datadir}/power-manager/udev-rules/91-power-manager.rules
+%{_datadir}/license/%{name}
