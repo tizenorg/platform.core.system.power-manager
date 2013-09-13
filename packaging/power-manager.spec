@@ -75,6 +75,7 @@ fi
 
 %files
 %manifest %{name}.manifest
+%license LICENSE.APLv2
 %{_sysconfdir}/rc.d/init.d/pmctrl
 %{_sysconfdir}/rc.d/rc3.d/S35power-manager
 %{_sysconfdir}/rc.d/rc5.d/S00power-manager
