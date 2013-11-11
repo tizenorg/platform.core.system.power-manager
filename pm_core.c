@@ -98,11 +98,7 @@ static int trans_table[S_END][EVENT_END] = {
 	{S_START, S_START},	/* S_START */
 	{S_LCDDIM, S_NORMAL},	/* S_NORMAL */
 	{S_LCDOFF, S_NORMAL},	/* S_LCDDIM */
-#ifdef TIZEN_EMUL
-	{S_LCDOFF, S_NORMAL},	/* S_LCDOFF */
-#else
 	{S_SLEEP, S_NORMAL},	/* S_LCDOFF */
-#endif
 	{S_LCDOFF, S_NORMAL},	/* S_SLEEP, When wake up by devices, go lcd_off state  */
 };
 
