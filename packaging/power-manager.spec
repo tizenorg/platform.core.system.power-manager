@@ -2,8 +2,8 @@ Name:       power-manager
 Summary:    Power manager
 Version:    1.3.23
 Release:    9
-Group:      framework/system
-License:    APLv2
+Group:      System/Power Management
+License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1001: power-manager.manifest 
 Requires(post): /usr/bin/vconftool
@@ -51,11 +51,6 @@ mkdir -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
 install -m 0644 %{SOURCE1} %{buildroot}/usr/lib/systemd/system/power-manager.service
 ln -s ../power-manager.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/power-manager.service
 
-mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc3.d/
-mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc5.d/
-ln -s %{_sysconfdir}/init.d/pmctrl %{buildroot}%{_sysconfdir}/rc.d/rc3.d/S35power-manager
-ln -s %{_sysconfdir}/init.d/pmctrl %{buildroot}%{_sysconfdir}/rc.d/rc5.d/S00power-manager
-
 %post
 vconftool set -t int memory/pm/state 0 -i
 vconftool set -t int memory/pm/battery_timetofull -1 -i
@@ -76,9 +71,6 @@ fi
 %files
 %manifest %{name}.manifest
 %license LICENSE.APLv2
-%{_sysconfdir}/rc.d/init.d/pmctrl
-%{_sysconfdir}/rc.d/rc3.d/S35power-manager
-%{_sysconfdir}/rc.d/rc5.d/S00power-manager
 %{_bindir}/pm_event
 %{_bindir}/pmctrl
 %{_bindir}/power_manager

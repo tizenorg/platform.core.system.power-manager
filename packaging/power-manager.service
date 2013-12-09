@@ -5,6 +5,7 @@ Description=Start the power manager service
 Type=forking
 ExecStart=/usr/bin/pmctrl start
 Environment=DISPLAY=:0
+PIDFile=/var/run/power-manager.pid
 
 [Install]
 WantedBy=multi-user.target
