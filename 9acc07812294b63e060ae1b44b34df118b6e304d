@@ -1,0 +1,9 @@
+Code-Review+1: Patrick McCarty <patrick.mccarty@linux.intel.com>
+Code-Review+2: MyungJoo Ham <myungjoo.ham@samsung.com>
+Code-Review+1: Karol Lewandowski <k.lewandowsk@samsung.com>
+Verified+1: Maciej Wereski <m.wereski@partner.samsung.com>
+Submitted-by: MyungJoo Ham <myungjoo.ham@samsung.com>
+Submitted-at: Mon, 09 Dec 2013 20:48:37 -0800
+Reviewed-on: https://review.tizen.org/gerrit/13555
+Project: platform/core/system/power-manager
+Branch: refs/heads/tizen
